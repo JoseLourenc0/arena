@@ -1,6 +1,6 @@
-import fs from "fs";
-import readline from "readline";
-import zlib from "zlib";
+import fs from "node:fs";
+import readline from "node:readline";
+import zlib from "node:zlib";
 import type {
   IpBlock,
   IpBlockRepository,

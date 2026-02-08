@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "start": "bun run ./src/main.ts",
+    "test": "bun test",
     "test:performance": "k6 run ./test.js",
     "test:performance:dashboard": "K6_WEB_DASHBOARD=true k6 run ./test.js"
   },
@@ -12,7 +13,8 @@
     "@types/bun": "latest",
     "@types/express": "^5.0.6",
     "@types/node": "^25.2.2",
-    "@types/pg": "^8.16.0"
+    "@types/pg": "^8.16.0",
+    "ts-node": "^10.9.2"
   },
   "peerDependencies": {
     "typescript": "^5.9.3"
