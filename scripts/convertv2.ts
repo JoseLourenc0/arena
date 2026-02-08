@@ -3,7 +3,7 @@ import readline from 'readline'
 import zlib from 'zlib'
 import { once } from 'events'
 
-const inputCsvPath = './IP2LOCATION-LITE-DB11.CSV'
+const inputCsvPath = './data/IP2LOCATION-LITE-DB11.CSV'
 const outputTsvGzPath = './data/ip_blocks.tsv.gz'
 
 type IpBlockRow = {
@@ -16,6 +16,12 @@ type IpBlockRow = {
 
 const stripQuotes = (value: string) =>
   value.trim().replace(/^"|"$/g, '').replace(/""/g, '"')
+
+const normalizeText = (raw: string | undefined, fallback: string) => {
+  const value = stripQuotes(raw || '')
+  if (!value || value === '-') return fallback
+  return value
+}
 
 const parseCsv = (line: string) => {
   const fields: string[] = []
@@ -56,18 +62,17 @@ const parseIpBlockRow = (line: string): IpBlockRow | null => {
 
   const ipFromText = stripQuotes(ipFromRaw || '')
   const ipToText = stripQuotes(ipToRaw || '')
-  const countryCode = stripQuotes(countryCodeRaw || '')
-  const region = stripQuotes(regionRaw || '')
-  const city = stripQuotes(cityRaw || '')
 
   if (!ipFromText || !ipToText) return null
-  if (!countryCode || countryCode === '-') return null
-  if (!region || !city) return null
 
   const ipFrom = Number(ipFromText)
   const ipTo = Number(ipToText)
 
   if (!Number.isFinite(ipFrom) || !Number.isFinite(ipTo)) return null
+
+  const countryCode = normalizeText(countryCodeRaw, 'ZZ')
+  const region = normalizeText(regionRaw, 'Unknown')
+  const city = normalizeText(cityRaw, 'Unknown')
 
   return { ipFrom, ipTo, countryCode, region, city }
 }
@@ -82,7 +87,7 @@ const logProgress = (read: number, written: number, skipped: number) => {
 }
 
 const run = async () => {
-  console.log(`Converting CSV -> TSV.GZ`)
+  console.log('Converting CSV -> TSV.GZ')
   console.log(`in:  ${inputCsvPath}`)
   console.log(`out: ${outputTsvGzPath}`)
 
@@ -101,6 +106,10 @@ const run = async () => {
   let written = 0
   let skipped = 0
 
+  let unknownCountry = 0
+  let unknownRegion = 0
+  let unknownCity = 0
+
   const timer = setInterval(() => logProgress(read, written, skipped), 1000)
 
   try {
@@ -117,6 +126,10 @@ const run = async () => {
         skipped += 1
         continue
       }
+
+      if (row.countryCode === 'ZZ') unknownCountry += 1
+      if (row.region === 'Unknown') unknownRegion += 1
+      if (row.city === 'Unknown') unknownCity += 1
 
       await writeLine(
         gzip,
@@ -135,7 +148,12 @@ const run = async () => {
 
   const elapsedSec = (Date.now() - startedAt) / 1000
   process.stdout.write('\n')
-  console.log(`DONE read=${read} written=${written} skipped=${skipped} elapsed=${elapsedSec.toFixed(2)}s`)
+  console.log(
+    `DONE read=${read} written=${written} skipped=${skipped} elapsed=${elapsedSec.toFixed(2)}s`
+  )
+  console.log(
+    `unknown country=${unknownCountry} region=${unknownRegion} city=${unknownCity}`
+  )
 }
 
 run().catch((err) => {
