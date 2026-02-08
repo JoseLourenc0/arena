@@ -1,3 +1,5 @@
+import { getLogContext } from "./log-context";
+
 type Level = "debug" | "info" | "warn" | "error";
 
 const levelRank: Record<Level, number> = {
@@ -16,7 +18,7 @@ const safeJson = (value: unknown) => {
   try {
     return JSON.stringify(value);
   } catch {
-    return '[unserializable]';
+    return "[unserializable]";
   }
 };
 
@@ -25,11 +27,14 @@ const format = (
   event: string,
   meta?: Record<string, unknown>,
 ) => {
-  const base = {
+  const ctx = getLogContext();
+  const base: Record<string, unknown> = {
     ts: nowIso(),
     level,
     event,
   };
+
+  if (ctx.requestId) base.requestId = ctx.requestId;
 
   if (!meta) return safeJson(base);
   return safeJson({ ...base, ...meta });
@@ -39,7 +44,7 @@ const write = (line: string) => {
   process.stdout.write(line + "\n");
 };
 
-const enabled = (level: Level) => levelRank[level] >= minRank
+const enabled = (level: Level) => levelRank[level] >= minRank;
 
 export const logger = {
   debug: (event: string, meta?: Record<string, unknown>) => {
