@@ -118,14 +118,65 @@ I implemented a minimal structured logger (no external libs):
 - JSON logs per line
 - levels (debug/info/warn/error)
 - timestamp included
-- request logging middleware includes method, path, status, duration
+- per-request correlation using `x-request-id` (also returned in the response header)
+- request logging includes method, path, status, duration
 
-This makes it easier to understand what happened during migrations/seeds and while running performance tests.
+This makes it easier to understand what happened during migrations/seeds and while running tests.
 
 ---
 
-## What I explicitly avoided
-- Cassandra or other distributed DBs: too much infra complexity for a code challenge, and not necessary to hit the performance target.
-- Keeping the original CSV inside the final zip.
-- In-memory preloading of the full dataset.
+## How to run
 
+### Prereqs
+- Docker + Docker Compose
+- (optional) Bun installed locally if you want to run without Docker
+
+### Start everything (recommended)
+```bash
+docker compose up --build
+```
+
+This will:
+
+* start Postgres
+
+* start the API
+
+* run migrations
+
+* run the seed (first boot only, controlled by seed_runs)
+
+* expose the API on http://localhost:3000
+
+Health check:
+
+```bash
+curl http://localhost:3000/health
+```
+
+Example lookup:
+
+```bash
+curl "http://localhost:3000/ip/location?ip=8.8.8.8"
+```
+
+Reset database:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+### Run tests
+
+```bash
+bun test
+```
+
+### Run the performance test (k6)
+
+k6 is not a dependency so it's needed to be installed beforehand
+
+```bash
+bun test:performance
+```
